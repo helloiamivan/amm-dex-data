@@ -14,41 +14,45 @@ def getABI( smartContractName ):
     return data
 
 def getPoolInfo( smartContractName, pairAddress, lpTokens ):
+    # TODO: Clean up code to make class
+    # TODO: Structure output JSON as a nested structure
+    # TODO: Query ABI as API and cache ABI and statics such as decimals and symbols locally
 
     web3 = Web3(Web3.HTTPProvider(INFURA_URL))
 
     SUSHISWAP_ABI = getABI( smartContractName )
+
     TOKEN_ABI     = getABI( 'token' )
 
     pairContract = web3.eth.contract( address = pairAddress, abi = SUSHISWAP_ABI )
 
     token0_reserve, token1_reserve, lastblock = pairContract.functions.getReserves().call()
     
-    totalSupplyLP = pairContract.functions.totalSupply().call()
-
+    totalSupplyLP  = pairContract.functions.totalSupply().call()
+    lpDecimal      = pairContract.functions.decimals().call()
     token0_address = pairContract.functions.token0().call()
-    
     token1_address = pairContract.functions.token1().call()
 
-    poolInfo = {
-        'Owned LP Tokens'          : lpTokens,
-        'Total LP Tokens'          : totalSupplyLP / 1E18,
-        'Owned LP Tokens Percent'  : lpTokens * 100.0 / ( totalSupplyLP / 1E18 ),
-        'Owned Token 0'            : (lpTokens / totalSupplyLP) * token0_reserve,
-        'Owned Token 1'            : (lpTokens / totalSupplyLP) * token1_reserve,
-        'Total Token 0 Reserve'    : token0_reserve / 1E18,
-        'Total Token 1 Reserve'    : token1_reserve / 1E18,
-        'Last Block Time'          : lastblock,
-        'Pair Address'             : pairAddress
-    }
-
-    tokenContract = web3.eth.contract( address = pairAddress, abi = TOKEN_ABI )
-
-    tokenContract.functions.symbol().call()
+    # Pool information dictionary to be returned in API
+    poolInfo = {}
 
     for i,tokenAddress, in enumerate([token0_address, token1_address]):
         tokenContract = web3.eth.contract( address = tokenAddress, abi = TOKEN_ABI )
-        poolInfo.update({ f'Token {i} Symbol' : tokenContract.functions.symbol().call() } )
+        poolInfo.update({ f'Token {i} Symbol'  : tokenContract.functions.symbol().call() } )
+        poolInfo.update({ f'Token {i} Decimal' : tokenContract.functions.decimals().call()})
+    
+    poolInfo.update({
+        'Owned LP Tokens'          : lpTokens,
+        'LP Token Decimals'        : lpDecimal,
+        'Total LP Tokens'          : totalSupplyLP / lpDecimal,
+        'Owned LP Tokens Percent'  : lpTokens * 100.0 / ( totalSupplyLP / lpDecimal ),
+        'Owned Token 0'            : (lpTokens / totalSupplyLP) * token0_reserve,
+        'Owned Token 1'            : (lpTokens / totalSupplyLP) * token1_reserve,
+        'Total Token 0 Reserve'    : token0_reserve / poolInfo['Token 0 Decimal'],
+        'Total Token 1 Reserve'    : token1_reserve / poolInfo['Token 1 Decimal'],
+        'Last Block Time'          : lastblock,
+        'Pair Address'             : pairAddress
+    })
 
     return poolInfo
 
@@ -57,8 +61,6 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
 def sushiswap_poolinfo():
     pairAddress       = request.args.get('pa')
     lpTokens          = float(request.args.get('lp'))
-
-    '''0xb5De0C3753b6E1B4dBA616Db82767F17513E6d4E'''
 
     poolInfo = getPoolInfo( smartContractName = 'sushiswap_pair' ,
                             pairAddress = pairAddress , 
