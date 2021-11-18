@@ -47,7 +47,6 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
     
     poolInfo.update({
         'Owned LP Tokens'          : lpTokens,
-        'LP Token Decimals'        : lpDecimal,
         'Total LP Tokens'          : totalSupplyLP / lpDecimal,
         'Owned LP Tokens Percent'  : lpTokens * 100.0 / ( totalSupplyLP / lpDecimal ),
         'Owned Token 0'            : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token0_reserve / token0Decimal),
