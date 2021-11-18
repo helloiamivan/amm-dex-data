@@ -29,7 +29,7 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
     token0_reserve, token1_reserve, lastblock = pairContract.functions.getReserves().call()
     
     totalSupplyLP  = pairContract.functions.totalSupply().call()
-    lpDecimal      = pairContract.functions.decimals().call()
+    lpDecimal      = 10 ** pairContract.functions.decimals().call()
     token0_address = pairContract.functions.token0().call()
     token1_address = pairContract.functions.token1().call()
 
@@ -41,15 +41,19 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
         poolInfo.update({ f'Token {i} Symbol'  : tokenContract.functions.symbol().call() } )
         poolInfo.update({ f'Token {i} Decimal' : tokenContract.functions.decimals().call()})
     
+    # Get the divisors for each token
+    token0Decimal = 10 ** poolInfo['Token 0 Decimal']
+    token1Decimal = 10 ** poolInfo['Token 1 Decimal']
+    
     poolInfo.update({
         'Owned LP Tokens'          : lpTokens,
         'LP Token Decimals'        : lpDecimal,
         'Total LP Tokens'          : totalSupplyLP / lpDecimal,
         'Owned LP Tokens Percent'  : lpTokens * 100.0 / ( totalSupplyLP / lpDecimal ),
-        'Owned Token 0'            : (lpTokens / totalSupplyLP) * ( token0_reserve / poolInfo['Token 0 Decimal']) ,
-        'Owned Token 1'            : (lpTokens / totalSupplyLP) * ( token1_reserve / poolInfo['Token 1 Decimal']) ,
-        'Total Token 0 Reserve'    : token0_reserve / poolInfo['Token 0 Decimal'],
-        'Total Token 1 Reserve'    : token1_reserve / poolInfo['Token 1 Decimal'],
+        'Owned Token 0'            : (lpTokens / totalSupplyLP) * ( token0_reserve / token0Decimal) ,
+        'Owned Token 1'            : (lpTokens / totalSupplyLP) * ( token1_reserve / token1Decimal) ,
+        'Total Token 0 Reserve'    : token0_reserve / token0Decimal,
+        'Total Token 1 Reserve'    : token1_reserve / token1Decimal,
         'Last Block Time'          : lastblock,
         'Pair Address'             : pairAddress
     })
