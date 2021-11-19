@@ -38,26 +38,26 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
 
     for i,tokenAddress, in enumerate([token0_address, token1_address]):
         tokenContract = web3.eth.contract( address = tokenAddress, abi = TOKEN_ABI )
-        poolInfo.update( { f'token{i}' : { 'symbol'   : tokenContract.functions.symbol().call() } } )
-        poolInfo.update( { f'token{i}' : { 'decimals' : tokenContract.functions.symbol().call() } } )
+        poolInfo[f'token{i}'].update( { 'symbol'     : tokenContract.functions.symbol().call() } )
+        poolInfo[f'token{i}'].update( { 'decimals'   : tokenContract.functions.decimals().call() } )
     
     # Get the divisors for each token
     token0Decimal = 10 ** poolInfo['token0']['decimals']
     token1Decimal = 10 ** poolInfo['token1']['decimals']
     
     # Update output with information
-    poolInfo.update( { 'lpToken' : { 'address'         : pairAddress } } )
-    poolInfo.update( { 'lpToken' : { 'owned'           : lpTokens } } )
-    poolInfo.update( { 'lpToken' : { 'totalSupply'     : totalSupplyLP / lpDecimal } } )
-    poolInfo.update( { 'lpToken' : { 'proportionOwned' : lpTokens / ( totalSupplyLP / lpDecimal ) } } )
+    poolInfo['tokenLp'].update( { 'address'         : pairAddress } )
+    poolInfo['tokenLp'].update( { 'owned'           : lpTokens } )
+    poolInfo['tokenLp'].update( { 'totalSupply'     : totalSupplyLP / lpDecimal } )
+    poolInfo['tokenLp'].update( { 'proportionOwned' : lpTokens / ( totalSupplyLP / lpDecimal ) } )
 
-    poolInfo.update( { 'token0'  : { 'address'         : token0_address } } )
-    poolInfo.update( { 'token0'  : { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token0_reserve / token0Decimal) } } )
-    poolInfo.update( { 'token0'  : { 'totalReserve'    : token0_reserve / token0Decimal } } )
+    poolInfo['token0'].update( { 'address'         : token0_address } )
+    poolInfo['token0'].update( { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token0_reserve / token0Decimal) } )
+    poolInfo['token0'].update( { 'totalReserve'    : token0_reserve / token0Decimal } )
 
-    poolInfo.update( { 'token1'  : { 'address'         : token1_address } } )
-    poolInfo.update( { 'token1'  : { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token1_reserve / token1Decimal) } } )
-    poolInfo.update( { 'token1'  : { 'totalReserve'    : token1_reserve / token1Decimal } } )
+    poolInfo['token1'].update( { 'address'         : token1_address } )
+    poolInfo['token1'].update( { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token1_reserve / token1Decimal) } )
+    poolInfo['token1'].update( { 'totalReserve'    : token1_reserve / token1Decimal } )
 
     return poolInfo
 
@@ -72,7 +72,7 @@ def sushiswap_poolinfo():
                                 pairAddress = pairAddress , 
                                 lpTokens = lpTokens )
         poolInfo.update( { 'status' : 200 } )
-        
+
     except Exception as e:
         poolInfo = { 'status' : 400 , 'error' : 'Check parameters, address must be a checksummed address'} 
 
