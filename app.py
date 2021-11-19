@@ -1,4 +1,5 @@
 import json, requests
+from typing import OrderedDict
 from web3 import Web3
 from flask import Flask, request
 
@@ -15,7 +16,6 @@ def getABI( smartContractName ):
 
 def getPoolInfo( smartContractName, pairAddress, lpTokens ):
     # TODO: Clean up code to make class
-    # TODO: Structure output JSON as a nested structure
     # TODO: Query ABI as API and cache ABI and statics such as decimals and symbols locally
 
     web3 = Web3(Web3.HTTPProvider(INFURA_URL))
@@ -34,28 +34,30 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
     token1_address = pairContract.functions.token1().call()
 
     # Pool information dictionary to be returned in API
-    poolInfo = {}
+    poolInfo = OrderedDict({ "tokenLp" : {} , "token0" : {} , "token1" : {} })
 
     for i,tokenAddress, in enumerate([token0_address, token1_address]):
         tokenContract = web3.eth.contract( address = tokenAddress, abi = TOKEN_ABI )
-        poolInfo.update({ f'Token {i} Symbol'  : tokenContract.functions.symbol().call() } )
-        poolInfo.update({ f'Token {i} Decimal' : tokenContract.functions.decimals().call()})
+        poolInfo.update( { f'token{i}' : { 'symbol'   : tokenContract.functions.symbol().call() } } )
+        poolInfo.update( { f'token{i}' : { 'decimals' : tokenContract.functions.symbol().call() } } )
     
     # Get the divisors for each token
-    token0Decimal = 10 ** poolInfo['Token 0 Decimal']
-    token1Decimal = 10 ** poolInfo['Token 1 Decimal']
+    token0Decimal = 10 ** poolInfo['token0']['decimals']
+    token1Decimal = 10 ** poolInfo['token1']['decimals']
     
-    poolInfo.update({
-        'Owned LP Tokens'          : lpTokens,
-        'Total LP Tokens'          : totalSupplyLP / lpDecimal,
-        'Owned LP Tokens Percent'  : lpTokens * 100.0 / ( totalSupplyLP / lpDecimal ),
-        'Owned Token 0'            : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token0_reserve / token0Decimal),
-        'Owned Token 1'            : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token1_reserve / token1Decimal),
-        'Total Token 0 Reserve'    : token0_reserve / token0Decimal,
-        'Total Token 1 Reserve'    : token1_reserve / token1Decimal,
-        'Last Block Time'          : lastblock,
-        'Pair Address'             : pairAddress
-    })
+    # Update output with information
+    poolInfo.update( { 'lpToken' : { 'address'         : pairAddress } } )
+    poolInfo.update( { 'lpToken' : { 'owned'           : lpTokens } } )
+    poolInfo.update( { 'lpToken' : { 'totalSupply'     : totalSupplyLP / lpDecimal } } )
+    poolInfo.update( { 'lpToken' : { 'proportionOwned' : lpTokens / ( totalSupplyLP / lpDecimal ) } } )
+
+    poolInfo.update( { 'token0'  : { 'address'         : token0_address } } )
+    poolInfo.update( { 'token0'  : { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token0_reserve / token0Decimal) } } )
+    poolInfo.update( { 'token0'  : { 'totalReserve'    : token0_reserve / token0Decimal } } )
+
+    poolInfo.update( { 'token1'  : { 'address'         : token1_address } } )
+    poolInfo.update( { 'token1'  : { 'owned'           : ( lpTokens / ( totalSupplyLP / lpDecimal ) ) * ( token1_reserve / token1Decimal) } } )
+    poolInfo.update( { 'token1'  : { 'totalReserve'    : token1_reserve / token1Decimal } } )
 
     return poolInfo
 
@@ -65,9 +67,14 @@ def sushiswap_poolinfo():
     pairAddress       = request.args.get('pa')
     lpTokens          = float(request.args.get('lp'))
 
-    poolInfo = getPoolInfo( smartContractName = 'sushiswap_pair' ,
-                            pairAddress = pairAddress , 
-                            lpTokens = lpTokens )
+    try:
+        poolInfo = getPoolInfo( smartContractName = 'sushiswap_pair' ,
+                                pairAddress = pairAddress , 
+                                lpTokens = lpTokens )
+        poolInfo.update( { 'status' : 200 } )
+        
+    except Exception as e:
+        poolInfo = { 'status' : 400 , 'error' : 'Check parameters, address must be a checksummed address'} 
 
     return poolInfo
 
