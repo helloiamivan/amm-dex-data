@@ -68,7 +68,7 @@ def sushiswap_poolinfo():
     lpTokens          = float(request.args.get('lp'))
 
     try:
-        poolInfo = getPoolInfo( smartContractName = 'sushiswap_pair' ,
+        poolInfo = getPoolInfo( smartContractName = 'sushiswap' ,
                                 pairAddress = pairAddress , 
                                 lpTokens = lpTokens )
         poolInfo.update( { 'status' : 200 } )
