@@ -45,6 +45,9 @@ def getPoolInfo( smartContractName, pairAddress, lpTokens ):
     token0Decimal = 10 ** poolInfo['token0']['decimals']
     token1Decimal = 10 ** poolInfo['token1']['decimals']
     
+    # Update block time
+    poolInfo['lastblock'] = lastblock
+    
     # Update output with information
     poolInfo['tokenLp'].update( { 'address'         : pairAddress } )
     poolInfo['tokenLp'].update( { 'owned'           : lpTokens } )
